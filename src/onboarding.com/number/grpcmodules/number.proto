@@ -15,11 +15,12 @@ message GuessNumber {
 }
 
 message NumberInfo {
-  Number num = 1;
+  uint32 num = 1;
   bool isActive = 2;
   message Guesses {
-      string guesserID = 1;
-      google.protobuf.Timestamp found = 2;
+      uint32 guesserID = 1;
+      google.protobuf.Timestamp time = 2;
+      int64 attempt = 3;
   }
   repeated Guesses guesses = 3;
 }
@@ -41,10 +42,10 @@ message NumberExistResponse {
 
 service NumberRpc {
   // api
-  rpc AddNumber(Number) returns (ResponseStatus) {}
-  rpc RemoveNumber(Number) returns (ResponseStatus) {}
-  rpc QueryNumber(Number) returns (QueryResponse) {}
+  rpc Add(Number) returns (ResponseStatus) {}
+  rpc Remove(Number) returns (ResponseStatus) {}
+  rpc Query(Number) returns (QueryResponse) {}
 
   // guesser
-  rpc IsNumberExist(stream GuessNumber) returns (stream NumberExistResponse) {}
+  rpc IsExist(stream GuessNumber) returns (stream NumberExistResponse) {}
 }

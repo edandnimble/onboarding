@@ -22,13 +22,17 @@ message ResponseStatus {
 
 message GuessInfo {
   uint32 num = 1;
-  google.protobuf.Timestamp found = 2;
+  int64 attempt = 2;
+  google.protobuf.Timestamp time = 3;
 }
 
 message QueryResponse {
   ResponseStatus status = 1;
    bool active = 2;
-   repeated GuessInfo info = 3;
+   uint32 beginAt = 3;
+   uint32 incrementBy = 4;
+   uint32 sleepInterval = 5;
+   repeated GuessInfo guesses = 6;
 }
 
 message AddGuesserResponse {
@@ -38,7 +42,7 @@ message AddGuesserResponse {
 
 service GuesserRpc {
   // api
-  rpc AddGuesser(Guesser) returns (AddGuesserResponse) {}
-  rpc RemoveGuesser(GuesserId) returns (ResponseStatus) {}
-  rpc QueryGuesser(GuesserId) returns (QueryResponse) {}
+  rpc Add(Guesser) returns (AddGuesserResponse) {}
+  rpc Remove(GuesserId) returns (ResponseStatus) {}
+  rpc Query(GuesserId) returns (QueryResponse) {}
 }

@@ -3,36 +3,66 @@ package guesser
 import (
 	"context"
 	"fmt"
+	"net"
+	"time"
 
 	apirpc "onboarding.com/api/grpcmodules"
 	rpc "onboarding.com/guesser/grpcmodules"
-	numrpc "onboarding.com/number/grpcmodules"
+	"onboarding.com/utils"
 
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type rpcServer struct {
+	rpc.UnimplementedGuesserRpcServer
 	conn     *grpc.ClientConn
-	client   rpc.GuesserManagerClient
 	idToChan map[uint32](chan bool)
 	id       uint32
 }
 
 func guesserRoutine(begin, incrementBy, sleepInterval, id uint32, conn *grpc.ClientConn, done <-chan bool) {
-	i := 0
-	client := apirpc.NewApiManagerClient(conn)
+	var i uint32 = 0
+	client := apirpc.NewApiRpcClient(conn)
+	//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	//defer cancel()
+	ctx := context.Background()
+	stream, err := client.GuessNumber(ctx)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 	for {
 		select {
 		case <-done:
 			return
 		default:
-			client.GuessNumber(numrpc.GuessNumber{Num: begin + (incrementBy * uint32(i)), Id: id})
+			nextNum := begin + (incrementBy * i)
+			//fmt.Printf("Guesser: %d guessed number: %d\n", id, nextNum)
+			stream.Send(&apirpc.Guess{Num: nextNum, Id: id})
 			i += 1
+			time.Sleep(time.Duration(sleepInterval) * time.Millisecond)
 		}
 	}
 }
 
-func (s *rpcServer) AddGuesser(ctx context.Context, req *rpc.Guesser) (*rpc.AddGuesserResponse, error) {
+func (s *rpcServer) Add(ctx context.Context, req *rpc.Guesser) (*rpc.AddGuesserResponse, error) {
+	mongoClient := utils.GetGuessClient()
+	newGuesser := &utils.MongoGuesser{
+		Id:            s.id + 1,
+		IsActive:      true,
+		BeginAt:       req.GetBeginAt(),
+		IncrementBy:   req.GetIncrementBy(),
+		SleepInterval: req.GetSleepInterval()}
+	fmt.Printf("Adding new guesser %v\n", newGuesser)
+
+	err := mongoClient.Add(newGuesser)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
+
 	done := make(chan bool)
 	s.id += 1
 	s.idToChan[s.id] = done
@@ -42,7 +72,12 @@ func (s *rpcServer) AddGuesser(ctx context.Context, req *rpc.Guesser) (*rpc.AddG
 	return &rpc.AddGuesserResponse{Status: &rpc.ResponseStatus{Ok: true, ErrCode: 0}, Id: s.id}, nil
 }
 
-func (s *rpcServer) RemoveGuesser(ctx context.Context, req *rpc.GuesserId) (*rpc.ResponseStatus, error) {
+func (s *rpcServer) Remove(ctx context.Context, req *rpc.GuesserId) (*rpc.ResponseStatus, error) {
+	mongoClient := utils.GetGuessClient()
+	err := mongoClient.Remove(req.GetId())
+	if err != nil {
+		return &rpc.ResponseStatus{Ok: false, ErrCode: 500}, nil
+	}
 	done, ok := s.idToChan[req.GetId()]
 	if !ok {
 		return &rpc.ResponseStatus{Ok: false, ErrCode: 404}, nil
@@ -54,15 +89,29 @@ func (s *rpcServer) RemoveGuesser(ctx context.Context, req *rpc.GuesserId) (*rpc
 	return &rpc.ResponseStatus{Ok: true, ErrCode: 0}, nil
 }
 
-func (s *rpcServer) QueryGuesser(ctx context.Context, req *rpc.GuesserId) (*rpc.QueryResponse, error) {
-	// redisClient := utils.GetRedisClient()
-	// err := redisClient.AddNumber(req.GetNum())
-	// if err != nil {
+func (s *rpcServer) Query(ctx context.Context, req *rpc.GuesserId) (*rpc.QueryResponse, error) {
+	mongoClient := utils.GetGuessClient()
+	res, err := mongoClient.Query(req.GetId())
+	if err != nil {
+		fmt.Printf("Error query mongo: %s\n", err.Error())
+		return &rpc.QueryResponse{Status: &rpc.ResponseStatus{Ok: false, ErrCode: 500}}, nil
+	}
+	if res == nil {
+		return &rpc.QueryResponse{Status: &rpc.ResponseStatus{Ok: false, ErrCode: 404}}, nil
+	}
 
-	// 	return &rpc.QueryResponse{Status: &rpc.ResponseStatus{Ok: false, ErrCode: 1}, Active: 0, GuessInfo: }, err
-	// }
+	var guesses []*rpc.GuessInfo
+	for _, g := range res.Found {
+		guesses = append(guesses, &rpc.GuessInfo{Num: g.Num, Attempt: g.Attempt, Time: timestamppb.New(g.Time)})
+	}
 
-	return &rpc.QueryResponse{Status: &rpc.ResponseStatus{Ok: true, ErrCode: 0}, Active: false, Info: nil}, nil
+	return &rpc.QueryResponse{
+		Status:        &rpc.ResponseStatus{Ok: true, ErrCode: 0},
+		Active:        res.IsActive,
+		BeginAt:       res.BeginAt,
+		IncrementBy:   res.IncrementBy,
+		SleepInterval: res.SleepInterval,
+		Guesses:       guesses}, nil
 }
 
 // func (s *guessServer) IsExists(id uint32) (bool) {
@@ -70,14 +119,25 @@ func (s *rpcServer) QueryGuesser(ctx context.Context, req *rpc.GuesserId) (*rpc.
 // 	return ok
 // }
 
-func NewRpcServer() (*rpcServer, error) {
+func NewRpcServer() {
 	// api client
-	conn, err := grpc.Dial("localhost:1002", grpc.WithInsecure())
+	conn, err := grpc.Dial(":50000", grpc.WithInsecure())
 	if err != nil {
 		fmt.Println(err.Error())
-		return nil, err
+		return
 	}
-	client := apirpc.NewApiManagerClient(conn)
+	defer conn.Close()
+
 	idToChan := make(map[uint32](chan bool))
-	return &rpcServer{client: client, conn: conn, idToChan: idToChan}, nil
+	guessRpcServer := rpcServer{conn: conn, idToChan: idToChan}
+
+	lis, err := net.Listen("tcp", ":50002")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	s := grpc.NewServer()
+	rpc.RegisterGuesserRpcServer(s, &guessRpcServer)
+	s.Serve(lis)
 }

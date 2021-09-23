@@ -23,10 +23,24 @@ func RunServer() {
 		return
 	}
 
-	// server.GET("/guessers/:id", func(c *gin.Context) {
-	// 	id := c.Param("id")
-	// 	c.JSON(http.StatusOK)
-	// })
+	server.GET("/guessers/:id", func(c *gin.Context) {
+		id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+		if err != nil {
+			fmt.Println(err.Error())
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		fmt.Printf("Get guesser %d\n", id)
+		res, err := guessService.Query(uint32(id))
+		if err != nil {
+			fmt.Println(err.Error())
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		fmt.Printf("Guesser: %v\n", res)
+
+		c.JSON(http.StatusOK, res)
+	})
 
 	server.POST("/guessers", func(c *gin.Context) {
 		var body GuesserBody
@@ -59,7 +73,22 @@ func RunServer() {
 		c.Status(http.StatusOK)
 	})
 
-	// server.GET("/nums/:num"
+	server.GET("/nums/:num", func(c *gin.Context) {
+		num, err := strconv.ParseUint(c.Param("num"), 10, 32)
+		if err != nil {
+			fmt.Println(err.Error())
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		res, err := numService.Query(uint32(num))
+		if err != nil {
+			fmt.Println(err.Error())
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		c.JSON(http.StatusOK, res)
+	})
 
 	server.POST("/nums", func(c *gin.Context) {
 		var body NumBody

@@ -2,98 +2,94 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-func getMongoClientAndDb() (*mongo.Client, *mongo.Database) {
+func GetMongoClientAndDb() (*mongo.Client, *mongo.Database) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	opts := options.Client().ApplyURI("mongodb://localhost:27017")
-	client := mongo.Connect(ctx, opts)
+	opts := options.Client().ApplyURI("mongodb://127.0.0.1:27001")
+	client, err := mongo.Connect(ctx, opts)
+	if err != nil {
+		return nil, nil
+	}
 	db := client.Database("onboarding")
 
-	return &client, &db
+	return client, db
 }
 
-type mongoNumberClient struct {
-	client     mongo.Client
-	db         mongo.Database
-	collection *mongo.Collection
-}
-
-type mongoGuessClient struct {
-	client     mongo.Client
-	db         mongo.Database
-	collection *mongo.Collection
-}
-
-func GetNumberClient() *mongoNumberClient {
-	client, db := getMongoClientAndDb()
-	collection := db.Collection("number")
-	// collection.Indexes().CreateOne(
-	// 	context.Background(),
-	// 	mongo.IndexModel{
-	// 		Keys:    bson.D{primitive.E{Key: "Num", Value: 0}},
-	// 		Options: nil},
-	// )
-	return &mongoNumberClient{
-		client:     client,
-		db:         db,
-		collection: collection}
-}
-
-func GetGuessClient() *mongoGuessClient {
-	client, db := getMongoClientAndDb()
-	collection := db.Collection("guess")
-	return &mongoGuessClient{
-		client:     client,
-		db:         db,
-		collection: collection}
-}
-
-func (c *mongoNumberClient) Add(num uint32) error {
+func UpdateCorrectGuessTransaction(num uint32, mongoNum *MongoFoundNumber, guess uint32, mongoGuess *MongoFoundGuesser) error {
+	client, db := GetMongoClientAndDb()
+	numCollection := db.Collection("number")
+	guessCollection := db.Collection("guess")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	opts := options.UpdateOptions{}.SetUpsert(true)
-	data := MongoNumber{IsActive: true}
-	_, err := c.collection.UpdateOne(
-		ctx,
-		bson.D{primitive.E{Key: "Num", Value: num}},
-		bson.D{primitive.E{Key: "$set", Value: data}},
-		opts)
-	return err
-}
-
-func (c *mongoNumberClient) Remove(num uint32) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	opts := options.UpdateOptions{}.SetUpsert(true)
-	data := MongoNumber{IsActive: false}
-	_, err := c.collection.UpdateOne(
-		ctx,
-		bson.D{primitive.E{Key: "Num", Value: num}},
-		bson.D{primitive.E{Key: "$set", Value: data}},
-		opts)
-	return err
-}
-
-func (c *mongoNumberClient) Query(num uint32) (*MongoNumber, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	var res MongoNumber
-	err := c.collection.FindOne(
-		ctx,
-		bson.D{primitive.E{Key: "Num", Value: num}}).Decode(&res)
+	session, err := client.StartSession()
 	if err != nil {
-		return nil, err
+		return err
+	}
+	defer session.EndSession(context.Background())
+
+	logic := func(sessCtx mongo.SessionContext) error {
+		opts := &options.UpdateOptions{}
+		opts = opts.SetUpsert(true)
+		filter := bson.M{"num": num}
+		update := bson.M{"$push": bson.M{"found": *mongoNum}}
+		res, err := numCollection.UpdateOne(ctx, filter, update)
+		if err != nil {
+			return err
+		}
+		if res.ModifiedCount != 1 {
+			return fmt.Errorf("Number %d not found", num)
+		}
+
+		filter = bson.M{"id": guess}
+		update = bson.M{"$push": bson.M{"found": *mongoGuess}}
+		res, err = guessCollection.UpdateOne(ctx, filter, update)
+		if err != nil {
+			return err
+		}
+		if res.ModifiedCount != 1 {
+			return fmt.Errorf("Guess %d not found", guess)
+		}
+
+		return nil
 	}
 
-	return &res, err
+	return RunInTransaction(ctx, session, logic)
+}
+
+func RunInTransaction(ctx context.Context, sess mongo.Session, f func(sessCtx mongo.SessionContext) error) error {
+	opts := &options.UpdateOptions{}
+	opts = opts.SetUpsert(false)
+	sessCtx := mongo.NewSessionContext(ctx, sess)
+	wc := writeconcern.New(writeconcern.WMajority())
+	rc := readconcern.Snapshot()
+	txnOpts := options.Transaction().SetWriteConcern(wc).SetReadConcern(rc)
+	err := sess.StartTransaction(txnOpts)
+	if err != nil {
+		return err
+	}
+	err = f(sessCtx)
+	if err != nil {
+		if abortErr := sess.AbortTransaction(sessCtx); abortErr != nil {
+			fmt.Printf("error trying to abort failed transaction: %s", abortErr)
+		}
+		return err
+	}
+	err = sess.CommitTransaction(sessCtx)
+	if err != nil {
+		if abortErr := sess.AbortTransaction(sessCtx); abortErr != nil {
+			fmt.Printf("error trying to abort failed transaction: %s", abortErr)
+		}
+	}
+	return err
 }

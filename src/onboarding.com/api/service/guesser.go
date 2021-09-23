@@ -14,13 +14,13 @@ type guessService struct {
 }
 
 func NewGuessService() (*guessService, error) {
-	conn, err := grpc.Dial("localhost:1002", grpc.WithInsecure())
+	conn, err := grpc.Dial(":50002", grpc.WithInsecure())
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, err
 	}
-	client := rpc.NewGuesserRpcClient(conn)
-	return &guessService{client: client}, nil
+	rpcClient := rpc.NewGuesserRpcClient(conn)
+	return &guessService{client: rpcClient}, nil
 }
 
 func (s *guessService) Add(beginAt, incrementBy, sleepInterval uint32) error {
@@ -28,7 +28,7 @@ func (s *guessService) Add(beginAt, incrementBy, sleepInterval uint32) error {
 		BeginAt:       beginAt,
 		IncrementBy:   incrementBy,
 		SleepInterval: sleepInterval}
-	_, err := s.client.AddGuesser(context.Background(), &gusserMessage)
+	_, err := s.client.Add(context.Background(), &gusserMessage)
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
@@ -39,11 +39,22 @@ func (s *guessService) Add(beginAt, incrementBy, sleepInterval uint32) error {
 
 func (s *guessService) Remove(id uint32) error {
 	guesserIdMessage := rpc.GuesserId{Id: id}
-	_, err := s.client.RemoveGuesser(context.Background(), &guesserIdMessage)
+	_, err := s.client.Remove(context.Background(), &guesserIdMessage)
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
 	}
 
 	return nil
+}
+
+func (s *guessService) Query(id uint32) (*rpc.QueryResponse, error) {
+	guesserIdMessage := rpc.GuesserId{Id: id}
+	res, err := s.client.Query(context.Background(), &guesserIdMessage)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
+
+	return res, nil
 }

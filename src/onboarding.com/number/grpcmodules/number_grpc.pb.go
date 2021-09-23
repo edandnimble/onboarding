@@ -19,11 +19,11 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type NumberRpcClient interface {
 	// api
-	AddNumber(ctx context.Context, in *Number, opts ...grpc.CallOption) (*ResponseStatus, error)
-	RemoveNumber(ctx context.Context, in *Number, opts ...grpc.CallOption) (*ResponseStatus, error)
-	QueryNumber(ctx context.Context, in *Number, opts ...grpc.CallOption) (*QueryResponse, error)
+	Add(ctx context.Context, in *Number, opts ...grpc.CallOption) (*ResponseStatus, error)
+	Remove(ctx context.Context, in *Number, opts ...grpc.CallOption) (*ResponseStatus, error)
+	Query(ctx context.Context, in *Number, opts ...grpc.CallOption) (*QueryResponse, error)
 	// guesser
-	IsNumberExist(ctx context.Context, opts ...grpc.CallOption) (NumberRpc_IsNumberExistClient, error)
+	IsExist(ctx context.Context, opts ...grpc.CallOption) (NumberRpc_IsExistClient, error)
 }
 
 type numberRpcClient struct {
@@ -34,57 +34,57 @@ func NewNumberRpcClient(cc grpc.ClientConnInterface) NumberRpcClient {
 	return &numberRpcClient{cc}
 }
 
-func (c *numberRpcClient) AddNumber(ctx context.Context, in *Number, opts ...grpc.CallOption) (*ResponseStatus, error) {
+func (c *numberRpcClient) Add(ctx context.Context, in *Number, opts ...grpc.CallOption) (*ResponseStatus, error) {
 	out := new(ResponseStatus)
-	err := c.cc.Invoke(ctx, "/numberModel.NumberRpc/AddNumber", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/numberModel.NumberRpc/Add", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *numberRpcClient) RemoveNumber(ctx context.Context, in *Number, opts ...grpc.CallOption) (*ResponseStatus, error) {
+func (c *numberRpcClient) Remove(ctx context.Context, in *Number, opts ...grpc.CallOption) (*ResponseStatus, error) {
 	out := new(ResponseStatus)
-	err := c.cc.Invoke(ctx, "/numberModel.NumberRpc/RemoveNumber", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/numberModel.NumberRpc/Remove", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *numberRpcClient) QueryNumber(ctx context.Context, in *Number, opts ...grpc.CallOption) (*QueryResponse, error) {
+func (c *numberRpcClient) Query(ctx context.Context, in *Number, opts ...grpc.CallOption) (*QueryResponse, error) {
 	out := new(QueryResponse)
-	err := c.cc.Invoke(ctx, "/numberModel.NumberRpc/QueryNumber", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/numberModel.NumberRpc/Query", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *numberRpcClient) IsNumberExist(ctx context.Context, opts ...grpc.CallOption) (NumberRpc_IsNumberExistClient, error) {
-	stream, err := c.cc.NewStream(ctx, &NumberRpc_ServiceDesc.Streams[0], "/numberModel.NumberRpc/IsNumberExist", opts...)
+func (c *numberRpcClient) IsExist(ctx context.Context, opts ...grpc.CallOption) (NumberRpc_IsExistClient, error) {
+	stream, err := c.cc.NewStream(ctx, &NumberRpc_ServiceDesc.Streams[0], "/numberModel.NumberRpc/IsExist", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &numberRpcIsNumberExistClient{stream}
+	x := &numberRpcIsExistClient{stream}
 	return x, nil
 }
 
-type NumberRpc_IsNumberExistClient interface {
+type NumberRpc_IsExistClient interface {
 	Send(*GuessNumber) error
 	Recv() (*NumberExistResponse, error)
 	grpc.ClientStream
 }
 
-type numberRpcIsNumberExistClient struct {
+type numberRpcIsExistClient struct {
 	grpc.ClientStream
 }
 
-func (x *numberRpcIsNumberExistClient) Send(m *GuessNumber) error {
+func (x *numberRpcIsExistClient) Send(m *GuessNumber) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *numberRpcIsNumberExistClient) Recv() (*NumberExistResponse, error) {
+func (x *numberRpcIsExistClient) Recv() (*NumberExistResponse, error) {
 	m := new(NumberExistResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -97,11 +97,11 @@ func (x *numberRpcIsNumberExistClient) Recv() (*NumberExistResponse, error) {
 // for forward compatibility
 type NumberRpcServer interface {
 	// api
-	AddNumber(context.Context, *Number) (*ResponseStatus, error)
-	RemoveNumber(context.Context, *Number) (*ResponseStatus, error)
-	QueryNumber(context.Context, *Number) (*QueryResponse, error)
+	Add(context.Context, *Number) (*ResponseStatus, error)
+	Remove(context.Context, *Number) (*ResponseStatus, error)
+	Query(context.Context, *Number) (*QueryResponse, error)
 	// guesser
-	IsNumberExist(NumberRpc_IsNumberExistServer) error
+	IsExist(NumberRpc_IsExistServer) error
 	mustEmbedUnimplementedNumberRpcServer()
 }
 
@@ -109,17 +109,17 @@ type NumberRpcServer interface {
 type UnimplementedNumberRpcServer struct {
 }
 
-func (UnimplementedNumberRpcServer) AddNumber(context.Context, *Number) (*ResponseStatus, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddNumber not implemented")
+func (UnimplementedNumberRpcServer) Add(context.Context, *Number) (*ResponseStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Add not implemented")
 }
-func (UnimplementedNumberRpcServer) RemoveNumber(context.Context, *Number) (*ResponseStatus, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveNumber not implemented")
+func (UnimplementedNumberRpcServer) Remove(context.Context, *Number) (*ResponseStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Remove not implemented")
 }
-func (UnimplementedNumberRpcServer) QueryNumber(context.Context, *Number) (*QueryResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method QueryNumber not implemented")
+func (UnimplementedNumberRpcServer) Query(context.Context, *Number) (*QueryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Query not implemented")
 }
-func (UnimplementedNumberRpcServer) IsNumberExist(NumberRpc_IsNumberExistServer) error {
-	return status.Errorf(codes.Unimplemented, "method IsNumberExist not implemented")
+func (UnimplementedNumberRpcServer) IsExist(NumberRpc_IsExistServer) error {
+	return status.Errorf(codes.Unimplemented, "method IsExist not implemented")
 }
 func (UnimplementedNumberRpcServer) mustEmbedUnimplementedNumberRpcServer() {}
 
@@ -134,79 +134,79 @@ func RegisterNumberRpcServer(s grpc.ServiceRegistrar, srv NumberRpcServer) {
 	s.RegisterService(&NumberRpc_ServiceDesc, srv)
 }
 
-func _NumberRpc_AddNumber_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _NumberRpc_Add_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Number)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(NumberRpcServer).AddNumber(ctx, in)
+		return srv.(NumberRpcServer).Add(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/numberModel.NumberRpc/AddNumber",
+		FullMethod: "/numberModel.NumberRpc/Add",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NumberRpcServer).AddNumber(ctx, req.(*Number))
+		return srv.(NumberRpcServer).Add(ctx, req.(*Number))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _NumberRpc_RemoveNumber_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _NumberRpc_Remove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Number)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(NumberRpcServer).RemoveNumber(ctx, in)
+		return srv.(NumberRpcServer).Remove(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/numberModel.NumberRpc/RemoveNumber",
+		FullMethod: "/numberModel.NumberRpc/Remove",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NumberRpcServer).RemoveNumber(ctx, req.(*Number))
+		return srv.(NumberRpcServer).Remove(ctx, req.(*Number))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _NumberRpc_QueryNumber_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _NumberRpc_Query_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Number)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(NumberRpcServer).QueryNumber(ctx, in)
+		return srv.(NumberRpcServer).Query(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/numberModel.NumberRpc/QueryNumber",
+		FullMethod: "/numberModel.NumberRpc/Query",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NumberRpcServer).QueryNumber(ctx, req.(*Number))
+		return srv.(NumberRpcServer).Query(ctx, req.(*Number))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _NumberRpc_IsNumberExist_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(NumberRpcServer).IsNumberExist(&numberRpcIsNumberExistServer{stream})
+func _NumberRpc_IsExist_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(NumberRpcServer).IsExist(&numberRpcIsExistServer{stream})
 }
 
-type NumberRpc_IsNumberExistServer interface {
+type NumberRpc_IsExistServer interface {
 	Send(*NumberExistResponse) error
 	Recv() (*GuessNumber, error)
 	grpc.ServerStream
 }
 
-type numberRpcIsNumberExistServer struct {
+type numberRpcIsExistServer struct {
 	grpc.ServerStream
 }
 
-func (x *numberRpcIsNumberExistServer) Send(m *NumberExistResponse) error {
+func (x *numberRpcIsExistServer) Send(m *NumberExistResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *numberRpcIsNumberExistServer) Recv() (*GuessNumber, error) {
+func (x *numberRpcIsExistServer) Recv() (*GuessNumber, error) {
 	m := new(GuessNumber)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -222,22 +222,22 @@ var NumberRpc_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*NumberRpcServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "AddNumber",
-			Handler:    _NumberRpc_AddNumber_Handler,
+			MethodName: "Add",
+			Handler:    _NumberRpc_Add_Handler,
 		},
 		{
-			MethodName: "RemoveNumber",
-			Handler:    _NumberRpc_RemoveNumber_Handler,
+			MethodName: "Remove",
+			Handler:    _NumberRpc_Remove_Handler,
 		},
 		{
-			MethodName: "QueryNumber",
-			Handler:    _NumberRpc_QueryNumber_Handler,
+			MethodName: "Query",
+			Handler:    _NumberRpc_Query_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "IsNumberExist",
-			Handler:       _NumberRpc_IsNumberExist_Handler,
+			StreamName:    "IsExist",
+			Handler:       _NumberRpc_IsExist_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

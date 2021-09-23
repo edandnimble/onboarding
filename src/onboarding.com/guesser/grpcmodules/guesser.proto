@@ -1,0 +1,44 @@
+syntax = "proto3";
+package guesserModel;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "onboarding.com/guesser/grpcmodules";
+
+message Guesser {
+  uint32 beginAt = 1;
+  uint32 incrementBy = 2;
+  uint32 sleepInterval = 3;
+}
+
+message GuesserId {
+  uint32 id = 1;
+}
+
+message ResponseStatus {
+  bool ok = 1;
+  uint32 errCode = 2;
+}
+
+message GuessInfo {
+  uint32 num = 1;
+  google.protobuf.Timestamp found = 2;
+}
+
+message QueryResponse {
+  ResponseStatus status = 1;
+   bool active = 2;
+   repeated GuessInfo info = 3;
+}
+
+message AddGuesserResponse {
+  ResponseStatus status = 1;
+  uint32 id = 2;
+}
+
+service GuesserRpc {
+  // api
+  rpc AddGuesser(Guesser) returns (AddGuesserResponse) {}
+  rpc RemoveGuesser(GuesserId) returns (ResponseStatus) {}
+  rpc QueryGuesser(GuesserId) returns (QueryResponse) {}
+}

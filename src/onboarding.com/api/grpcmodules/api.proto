@@ -1,0 +1,15 @@
+syntax = "proto3";
+package apiModel;
+
+option go_package = "onboarding.com/api/grpcmodules";
+
+import "google/protobuf/empty.proto";
+
+message Guess {
+  uint32 num = 1;
+  uint32 id = 2;
+}
+
+service ApiRpc {
+   rpc GuessNumber(stream Guess) returns (google.protobuf.Empty) {}
+}

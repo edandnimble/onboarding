@@ -1,0 +1,50 @@
+syntax = "proto3";
+package numberModel;
+
+option go_package = "onboarding.com/number/grpcmodules";
+
+import "google/protobuf/timestamp.proto";
+
+message Number {
+  uint32 num = 1;
+}
+
+message GuessNumber {
+  uint32 num = 1;
+  uint32 id = 2;
+}
+
+message NumberInfo {
+  Number num = 1;
+  bool isActive = 2;
+  message Guesses {
+      string guesserID = 1;
+      google.protobuf.Timestamp found = 2;
+  }
+  repeated Guesses guesses = 3;
+}
+
+message ResponseStatus {
+  bool ok = 1;
+  uint32 errCode = 2;
+}
+
+message QueryResponse {
+  ResponseStatus status = 1;
+  NumberInfo info = 2;
+}
+
+message NumberExistResponse {
+  ResponseStatus status = 1;
+  bool exist = 2;
+}
+
+service NumberRpc {
+  // api
+  rpc AddNumber(Number) returns (ResponseStatus) {}
+  rpc RemoveNumber(Number) returns (ResponseStatus) {}
+  rpc QueryNumber(Number) returns (QueryResponse) {}
+
+  // guesser
+  rpc IsNumberExist(stream GuessNumber) returns (stream NumberExistResponse) {}
+}

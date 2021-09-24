@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -22,7 +23,7 @@ func GetGuessClient() *mongoGuessClient {
 	collection.Indexes().CreateOne(
 		context.Background(),
 		mongo.IndexModel{
-			Keys:    bson.D{primitive.E{Key: "id", Value: 0}},
+			Keys:    bson.D{primitive.E{Key: "id", Value: 1}},
 			Options: options.Index().SetUnique(true)},
 	)
 	return &mongoGuessClient{
@@ -41,13 +42,26 @@ func (c *mongoGuessClient) Add(guesser *MongoGuesser) error {
 func (c *mongoGuessClient) Remove(id uint32) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	opts := (&options.UpdateOptions{}).SetUpsert(true)
-	data := MongoGuesser{IsActive: false}
-	_, err := c.collection.UpdateOne(
-		ctx,
-		bson.D{primitive.E{Key: "id", Value: id}},
-		bson.D{primitive.E{Key: "$set", Value: data}},
-		opts)
+	//opts := (&options.UpdateOptions{}).SetUpsert(true)
+	data, err := c.Query(id)
+	if err != nil {
+		return err
+	}
+
+	if data.IsActive == false {
+		return fmt.Errorf("Guesser %v is not active", id)
+	}
+
+	data.IsActive = false
+	// _, err := c.collection.UpdateOne(
+	// 	ctx,
+	// 	bson.D{primitive.E{Key: "id", Value: id}},
+	// 	bson.D{primitive.E{Key: "$set", Value: data}},
+	// 	opts)
+	filter := bson.D{primitive.E{Key: "id", Value: id}}
+	_, err = c.collection.ReplaceOne(ctx, filter, data, options.Replace().SetUpsert(true))
+	// 	bson.D{primitive.E{Key: "$set", Value: data}},
+	// 	opts)
 	return err
 }
 

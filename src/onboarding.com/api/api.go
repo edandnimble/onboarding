@@ -31,6 +31,7 @@ func RunServer() {
 			return
 		}
 		fmt.Printf("Get guesser %d\n", id)
+
 		res, err := guessService.Query(uint32(id))
 		if err != nil {
 			fmt.Println(err.Error())
@@ -66,7 +67,7 @@ func RunServer() {
 		err = guessService.Remove(uint32(id))
 		if err != nil {
 			fmt.Println(err.Error())
-			c.Status(http.StatusInternalServerError)
+			c.Status(http.StatusNotFound)
 			return
 		}
 
@@ -83,7 +84,7 @@ func RunServer() {
 		res, err := numService.Query(uint32(num))
 		if err != nil {
 			fmt.Println(err.Error())
-			c.Status(http.StatusInternalServerError)
+			c.Status(http.StatusNotFound)
 			return
 		}
 
@@ -97,6 +98,7 @@ func RunServer() {
 		err := numService.Add(body.Num)
 		if err != nil {
 			fmt.Println(err.Error())
+			c.Status(http.StatusBadRequest)
 			return
 		}
 
@@ -104,12 +106,18 @@ func RunServer() {
 	})
 
 	server.DELETE("/nums/:num", func(c *gin.Context) {
-		var body NumBody
-		c.BindJSON(&body)
-
-		err := numService.Remove(body.Num)
+		num, err := strconv.ParseUint(c.Param("num"), 10, 32)
 		if err != nil {
 			fmt.Println(err.Error())
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		fmt.Println("Removing num ", num)
+
+		err = numService.Remove(uint32(num))
+		if err != nil {
+			fmt.Println(err.Error())
+			c.Status(http.StatusNotFound)
 			return
 		}
 

@@ -27,7 +27,6 @@ func (s *numService) Add(num uint32) error {
 	numMessage := rpc.Number{Num: num}
 	_, err := s.client.Add(context.Background(), &numMessage)
 	if err != nil {
-		fmt.Println(err.Error())
 		return err
 	}
 
@@ -38,7 +37,6 @@ func (s *numService) Remove(num uint32) error {
 	numMessage := rpc.Number{Num: num}
 	_, err := s.client.Remove(context.Background(), &numMessage)
 	if err != nil {
-		fmt.Println(err.Error())
 		return err
 	}
 
@@ -49,7 +47,6 @@ func (s *numService) Query(num uint32) (*rpc.QueryResponse, error) {
 	numberMessage := rpc.Number{Num: num}
 	res, err := s.client.Query(context.Background(), &numberMessage)
 	if err != nil {
-		fmt.Println(err.Error())
 		return nil, err
 	}
 

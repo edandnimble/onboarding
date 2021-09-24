@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,12 +20,16 @@ type mongoNumberClient struct {
 func GetNumberClient() *mongoNumberClient {
 	client, db := GetMongoClientAndDb()
 	collection := db.Collection("number")
-	collection.Indexes().CreateOne(
+	_, err := collection.Indexes().CreateOne(
 		context.Background(),
 		mongo.IndexModel{
-			Keys:    bson.D{primitive.E{Key: "num", Value: 0}},
+			Keys:    bson.D{primitive.E{Key: "num", Value: 1}},
 			Options: options.Index().SetUnique(true)},
 	)
+	if err != nil {
+		fmt.Println("Error creating index ", err.Error())
+		return nil
+	}
 	return &mongoNumberClient{
 		client:     client,
 		db:         db,
@@ -34,21 +39,57 @@ func GetNumberClient() *mongoNumberClient {
 func (c *mongoNumberClient) Add(num uint32) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	data := MongoNumber{Num: num, IsActive: true}
-	_, err := c.collection.InsertOne(ctx, data)
+	data, err := c.Query(num)
+	if err == mongo.ErrNoDocuments {
+		data := MongoNumber{Num: num, IsActive: true}
+		_, err = c.collection.InsertOne(ctx, data)
+		return err
+	}
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Number %v already exists, activating\n", num)
+	if err != nil {
+		return err
+	}
+
+	if data.IsActive == true {
+		return fmt.Errorf("Number %v is already active", num)
+	}
+
+	data.IsActive = true
+
+	filter := bson.D{primitive.E{Key: "num", Value: num}}
+	_, err = c.collection.ReplaceOne(ctx, filter, data, options.Replace().SetUpsert(true))
+
 	return err
+
 }
 
 func (c *mongoNumberClient) Remove(num uint32) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	opts := (&options.UpdateOptions{}).SetUpsert(true)
-	data := MongoNumber{IsActive: false}
-	_, err := c.collection.UpdateOne(
-		ctx,
-		bson.D{primitive.E{Key: "num", Value: num}},
-		bson.D{primitive.E{Key: "$set", Value: data}},
-		opts)
+	// opts := (&options.UpdateOptions{}).SetUpsert(true)
+	data, err := c.Query(num)
+	if err != nil {
+		return err
+	}
+
+	if data.IsActive == false {
+		return fmt.Errorf("Number %v is not active", num)
+	}
+
+	data.IsActive = false
+
+	filter := bson.D{primitive.E{Key: "num", Value: num}}
+	_, err = c.collection.ReplaceOne(ctx, filter, data, options.Replace().SetUpsert(true))
+	// _, err := c.collection.UpdateOne(
+	// 	ctx,
+	// 	bson.D{primitive.E{Key: "num", Value: num}},
+	// 	bson.D{primitive.E{Key: "$set", Value: data}},
+	// 	opts)
 	return err
 }
 

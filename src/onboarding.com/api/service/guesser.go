@@ -30,7 +30,6 @@ func (s *guessService) Add(beginAt, incrementBy, sleepInterval uint32) error {
 		SleepInterval: sleepInterval}
 	_, err := s.client.Add(context.Background(), &gusserMessage)
 	if err != nil {
-		fmt.Println(err.Error())
 		return err
 	}
 
@@ -41,7 +40,6 @@ func (s *guessService) Remove(id uint32) error {
 	guesserIdMessage := rpc.GuesserId{Id: id}
 	_, err := s.client.Remove(context.Background(), &guesserIdMessage)
 	if err != nil {
-		fmt.Println(err.Error())
 		return err
 	}
 
@@ -52,7 +50,6 @@ func (s *guessService) Query(id uint32) (*rpc.QueryResponse, error) {
 	guesserIdMessage := rpc.GuesserId{Id: id}
 	res, err := s.client.Query(context.Background(), &guesserIdMessage)
 	if err != nil {
-		fmt.Println(err.Error())
 		return nil, err
 	}
 

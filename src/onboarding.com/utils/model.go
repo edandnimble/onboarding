@@ -7,7 +7,7 @@ import (
 type MongoFoundNumber struct {
 	GuesserId uint32    `bson:"guesser_id,omitempty" json:"guesser_id,omitempty"`
 	Attempt   int64     `bson:"attempt,omitempty" json:"attempt,omitempty"`
-	Time      time.Time `bson:"time,omitempty" json:"time,omitempty"`
+	FoundAt   time.Time `bson:"found_at,omitempty" json:"found_at,omitempty"`
 }
 
 type MongoNumber struct {
@@ -19,7 +19,7 @@ type MongoNumber struct {
 type MongoFoundGuesser struct {
 	Num     uint32    `bson:"num,omitempty" json:"num,omitempty"`
 	Attempt int64     `bson:"attempt,omitempty" json:"attempt,omitempty"`
-	Time    time.Time `bson:"time,omitempty" json:"time,omitempty"`
+	FoundAt time.Time `bson:"found_at,omitempty" json:"found_at,omitempty"`
 }
 
 type MongoGuesser struct {
@@ -29,4 +29,11 @@ type MongoGuesser struct {
 	IncrementBy   uint32              `bson:"increment_by,omitempty" json:"increment_by,omitempty"`
 	SleepInterval uint32              `bson:"sleep_interval,omitempty" json:"sleep_interval,omitempty"`
 	Found         []MongoFoundGuesser `bson:"found,omitempty" json:"guesses,omitempty"`
+}
+
+type MongoPrime struct {
+	Prime     uint32    `bson:"prime,required" json:"prime,required"`
+	GuesserId uint32    `bson:"guesser_id,required" json:"guesser_id,required"`
+	Num       uint32    `bson:"num,required" json:"num,required"`
+	FoundAt   time.Time `bson:"found_at,required" json:"found_at,required"`
 }

@@ -19,7 +19,7 @@ message NumberInfo {
   bool isActive = 2;
   message Guesses {
       uint32 guesserID = 1;
-      google.protobuf.Timestamp time = 2;
+      google.protobuf.Timestamp foundAt = 2;
       int64 attempt = 3;
   }
   repeated Guesses guesses = 3;

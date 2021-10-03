@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
 
 	rpc "onboarding.com/guesser/grpcmodules"
 
@@ -14,7 +15,8 @@ type guessService struct {
 }
 
 func NewGuessService() (*guessService, error) {
-	conn, err := grpc.Dial(":50002", grpc.WithInsecure())
+	grpcPort := os.Getenv("GUESSER_GRPC_PORT")
+	conn, err := grpc.Dial(":"+grpcPort, grpc.WithInsecure())
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, err

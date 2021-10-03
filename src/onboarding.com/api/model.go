@@ -8,7 +8,7 @@ type NumBody struct {
 
 type Guess struct {
 	GuesserId uint32    `json:"guesser_id,required"`
-	Found     time.Time `json:"found_time,required"`
+	FoundAt   time.Time `json:"found_time,required"`
 	Attempt   uint32    `json:"attempt_num,required"`
 }
 

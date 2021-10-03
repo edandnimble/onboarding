@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
 	"onboarding.com/api/service"
@@ -30,7 +31,6 @@ func RunServer() {
 			c.Status(http.StatusInternalServerError)
 			return
 		}
-		fmt.Printf("Get guesser %d\n", id)
 
 		res, err := guessService.Query(uint32(id))
 		if err != nil {
@@ -38,7 +38,6 @@ func RunServer() {
 			c.Status(http.StatusInternalServerError)
 			return
 		}
-		fmt.Printf("Guesser: %v\n", res)
 
 		c.JSON(http.StatusOK, res)
 	})
@@ -124,8 +123,20 @@ func RunServer() {
 		c.Status(http.StatusOK)
 	})
 
-	// server.GET("/primes"
+	server.GET("/primes", func(c *gin.Context) {
+		fmt.Printf("Get primes")
 
-	// Listen and serve on 0.0.0.0:8080
-	server.Run(":8080")
+		res, err := service.QueryPrime()
+		if err != nil {
+			fmt.Println(err.Error())
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		c.JSON(http.StatusOK, res)
+	})
+
+	// Listen and serve
+	httpPort := os.Getenv("API_HTTP_PORT")
+	server.Run(":" + httpPort)
 }

@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"time"
 
 	rpc "onboarding.com/number/grpcmodules"
+	"onboarding.com/tasks"
 	"onboarding.com/utils"
 
 	"google.golang.org/grpc"
@@ -52,7 +54,7 @@ func (s *rpcServer) Query(ctx context.Context, req *rpc.Number) (*rpc.QueryRespo
 		guesses = append(guesses,
 			&rpc.NumberInfo_Guesses{
 				GuesserID: r.GuesserId,
-				Time:      timestamppb.New(r.Time),
+				FoundAt:   timestamppb.New(r.FoundAt),
 				Attempt:   r.Attempt})
 	}
 
@@ -89,15 +91,20 @@ func (s *rpcServer) IsExist(stream rpc.NumberRpc_IsExistServer) error {
 			now := time.Now()
 			fmt.Printf("guesser %d found %d at %v", guess.GetId(), guess.GetNum(), now)
 
-			mongoNum := &utils.MongoFoundNumber{GuesserId: guess.GetId(), Attempt: attemptCounter, Time: now}
-			guessMongo := &utils.MongoFoundGuesser{Num: guess.GetNum(), Attempt: attemptCounter, Time: now}
+			mongoNum := &utils.MongoFoundNumber{GuesserId: guess.GetId(), Attempt: attemptCounter, FoundAt: now}
+			guessMongo := &utils.MongoFoundGuesser{Num: guess.GetNum(), Attempt: attemptCounter, FoundAt: now}
 			err := utils.UpdateCorrectGuessTransaction(guess.GetNum(), mongoNum, guess.GetId(), guessMongo)
 			if err != nil {
 				fmt.Println("Mongo transaction error ", err.Error())
 				return err
 			}
 
-			// TODO run machinary & update monog guesser, num in transaction
+			err = tasks.StartFindPrimeTask(guess.GetNum(), guess.GetId(), now)
+			if err != nil {
+				fmt.Println("async task error ", err.Error())
+				return err
+
+			}
 		}
 
 		stream.Send(&rpc.NumberExistResponse{Status: &rpc.ResponseStatus{Ok: true, ErrCode: 0}, Exist: exists})
@@ -106,7 +113,10 @@ func (s *rpcServer) IsExist(stream rpc.NumberRpc_IsExistServer) error {
 }
 
 func NewRpcServer() {
-	lis, err := net.Listen("tcp", ":50001")
+	initAsyncTasksServer()
+
+	port := os.Getenv("NUMBER_GRPC_PORT")
+	lis, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -115,4 +125,8 @@ func NewRpcServer() {
 	s := grpc.NewServer()
 	rpc.RegisterNumberRpcServer(s, &rpcServer{})
 	s.Serve(lis)
+}
+
+func initAsyncTasksServer() {
+	tasks.NewMachineryServer(false)
 }

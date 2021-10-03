@@ -1,19 +1,26 @@
-module onboarding.com/number
+module onboarding.com/tasks
 
 go 1.17
 
+replace onboarding.com/api => ../api/
+
+replace onboarding.com/guesser => ../guesser/
+
+replace onboarding.com/utils => ../utils/
+
+replace onboarding.com/number => ../number/
+
+replace onboarding.com/tasks => ./
+
 require (
-	google.golang.org/grpc v1.40.0
-	google.golang.org/protobuf v1.27.1
-	onboarding.com/tasks v0.0.0-00010101000000-000000000000
-	onboarding.com/utils v0.0.0-00010101000000-000000000000
+	github.com/RichardKnop/machinery v1.10.6
+	onboarding.com/api v0.0.0-00010101000000-000000000000
 )
 
 require (
 	cloud.google.com/go v0.76.0 // indirect
 	cloud.google.com/go/pubsub v1.10.0 // indirect
 	github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae // indirect
-	github.com/RichardKnop/machinery v1.10.6 // indirect
 	github.com/aws/aws-sdk-go v1.37.16 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
@@ -61,17 +68,10 @@ require (
 	google.golang.org/api v0.39.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20210207032614-bba0dbe2a9ea // indirect
+	google.golang.org/grpc v1.40.0 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	onboarding.com/api v0.0.0-00010101000000-000000000000 // indirect
 	onboarding.com/guesser v0.0.0-00010101000000-000000000000 // indirect
+	onboarding.com/number v0.0.0-00010101000000-000000000000 // indirect
+	onboarding.com/utils v0.0.0-00010101000000-000000000000 // indirect
 )
-
-replace onboarding.com/api => ../api/
-
-replace onboarding.com/guesser => ../guesser/
-
-replace onboarding.com/utils => ../utils/
-
-replace onboarding.com/tasks => ../tasks/
-
-replace onboarding.com/number => ./

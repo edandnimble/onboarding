@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
 
 	rpc "onboarding.com/number/grpcmodules"
 
@@ -14,7 +15,8 @@ type numService struct {
 }
 
 func NewNumService() (*numService, error) {
-	conn, err := grpc.Dial(":50001", grpc.WithInsecure())
+	grpcPort := os.Getenv("NUMBER_GRPC_PORT")
+	conn, err := grpc.Dial(":"+grpcPort, grpc.WithInsecure())
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, err

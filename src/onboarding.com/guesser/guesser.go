@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"time"
 
 	apirpc "onboarding.com/api/grpcmodules"
@@ -102,7 +103,7 @@ func (s *rpcServer) Query(ctx context.Context, req *rpc.GuesserId) (*rpc.QueryRe
 
 	var guesses []*rpc.GuessInfo
 	for _, g := range res.Found {
-		guesses = append(guesses, &rpc.GuessInfo{Num: g.Num, Attempt: g.Attempt, Time: timestamppb.New(g.Time)})
+		guesses = append(guesses, &rpc.GuessInfo{Num: g.Num, Attempt: g.Attempt, FoundAt: timestamppb.New(g.FoundAt)})
 	}
 
 	return &rpc.QueryResponse{
@@ -121,7 +122,8 @@ func (s *rpcServer) Query(ctx context.Context, req *rpc.GuesserId) (*rpc.QueryRe
 
 func NewRpcServer() {
 	// api client
-	conn, err := grpc.Dial(":50000", grpc.WithInsecure())
+	grpcPort := os.Getenv("API_GRPC_PORT")
+	conn, err := grpc.Dial(":"+grpcPort, grpc.WithInsecure())
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -131,7 +133,8 @@ func NewRpcServer() {
 	idToChan := make(map[uint32](chan bool))
 	guessRpcServer := rpcServer{conn: conn, idToChan: idToChan}
 
-	lis, err := net.Listen("tcp", ":50002")
+	grpcPort = os.Getenv("GUESSER_GRPC_PORT")
+	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
 		fmt.Println(err.Error())
 		return

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 
 	apirpc "onboarding.com/api/grpcmodules"
 	numrpc "onboarding.com/number/grpcmodules"
@@ -17,7 +18,8 @@ type rpcServer struct {
 }
 
 func NewRpcServer() {
-	conn, err := grpc.Dial(":50001", grpc.WithInsecure())
+	numPort := os.Getenv("NUMBER_GRPC_PORT")
+	conn, err := grpc.Dial(":"+numPort, grpc.WithInsecure())
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -27,7 +29,8 @@ func NewRpcServer() {
 	client := numrpc.NewNumberRpcClient(conn)
 	apiRpcServer := rpcServer{client: client}
 
-	lis, err := net.Listen("tcp", ":50000")
+	grpcPort := os.Getenv("API_GRPC_PORT")
+	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
 		fmt.Println(err.Error())
 		return

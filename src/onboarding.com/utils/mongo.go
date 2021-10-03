@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,7 +17,8 @@ func GetMongoClientAndDb() (*mongo.Client, *mongo.Database) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	opts := options.Client().ApplyURI("mongodb://127.0.0.1:27001")
+	mongoPort := os.Getenv("MONGO_PORT")
+	opts := options.Client().ApplyURI("mongodb://127.0.0.1:" + mongoPort)
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
 		return nil, nil

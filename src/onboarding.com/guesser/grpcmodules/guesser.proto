@@ -23,7 +23,7 @@ message ResponseStatus {
 message GuessInfo {
   uint32 num = 1;
   int64 attempt = 2;
-  google.protobuf.Timestamp time = 3;
+  google.protobuf.Timestamp foundAt = 3;
 }
 
 message QueryResponse {

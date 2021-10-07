@@ -3,6 +3,7 @@ FROM golang:1.17 AS builder
 env CGO_ENABLED=0
 COPY . /build
 WORKDIR /build/tasks
+RUN go mod download
 RUN go build -o tasks.bin ./main/main.go
 
 FROM alpine

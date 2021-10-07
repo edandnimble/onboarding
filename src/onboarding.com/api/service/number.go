@@ -3,11 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
-	"os"
-
-	rpc "onboarding.com/number/grpcmodules"
 
 	"google.golang.org/grpc"
+	rpc "onboarding.com/number/grpcmodules"
+	"onboarding.com/utils"
 )
 
 type numService struct {
@@ -15,12 +14,15 @@ type numService struct {
 }
 
 func NewNumService() (*numService, error) {
-	grpcPort := os.Getenv("NUMBER_GRPC_PORT")
-	conn, err := grpc.Dial(":"+grpcPort, grpc.WithInsecure())
+	ip, port, err := utils.GetServiceDNS("number")
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, err
 	}
+
+	fmt.Println("connecting to number: " + ip + ":" + port)
+	conn, _ := grpc.Dial(ip+":"+port, grpc.WithInsecure())
+
 	client := rpc.NewNumberRpcClient(conn)
 	return &numService{client: client}, nil
 }

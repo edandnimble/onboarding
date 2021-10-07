@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"os"
+	"fmt"
 	"strconv"
 	"sync"
 
@@ -17,11 +17,16 @@ var redisOnce sync.Once
 
 func GetRedisClient() *redisClient {
 	redisOnce.Do(func() {
-		redisPort := os.Getenv("REDIS_PORT")
+		ip, port, err := GetServiceDNS("redis")
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+
 		redisSingletonClient = &redisClient{
 			client: redis.NewUniversalClient(
 				&redis.UniversalOptions{
-					Addrs: []string{":" + redisPort},
+					Addrs: []string{ip + ":" + port},
 				}),
 		}
 	})

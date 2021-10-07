@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -17,10 +16,15 @@ func GetMongoClientAndDb() (*mongo.Client, *mongo.Database) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	mongoPort := os.Getenv("MONGO_PORT")
-	opts := options.Client().ApplyURI("mongodb://127.0.0.1:" + mongoPort)
+	ip, port, err := GetServiceDNS("mongo")
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, nil
+	}
+	opts := options.Client().ApplyURI("mongodb://" + ip + ":" + port)
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
+		fmt.Println(err.Error())
 		return nil, nil
 	}
 	db := client.Database("onboarding")

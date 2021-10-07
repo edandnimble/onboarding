@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
-	"os"
 
 	rpc "onboarding.com/guesser/grpcmodules"
+	"onboarding.com/utils"
 
 	"google.golang.org/grpc"
 )
@@ -15,12 +15,18 @@ type guessService struct {
 }
 
 func NewGuessService() (*guessService, error) {
-	grpcPort := os.Getenv("GUESSER_GRPC_PORT")
-	conn, err := grpc.Dial(":"+grpcPort, grpc.WithInsecure())
+	ip, port, err := utils.GetServiceDNS("guesser")
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, err
 	}
+	fmt.Println("connecting to guesser: " + ip + ":" + port)
+	conn, err := grpc.Dial(ip+":"+port, grpc.WithInsecure())
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
+
 	rpcClient := rpc.NewGuesserRpcClient(conn)
 	return &guessService{client: rpcClient}, nil
 }

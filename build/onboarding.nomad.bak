@@ -8,15 +8,12 @@ job "onboarding" {
 
       config {
         command = "consul"
-        args = ["agent", "-dev", "-bind", "10.254.67.12", "-advertise", "10.254.67.12", "-client", "10.254.67.12", "-dns-port", "53"]
+        args = ["agent", "-dev"]
       }
 
-      # cannot use artifact with DNS because of bind 53 port restictions on linux
-      # install consul and run:
-      # $ sudo setcap CAP_NET_BIND_SERVICE=+eip /usr/bin/consul
-      # artifact {
-      #   source = "https://releases.hashicorp.com/consul/1.10.3/consul_1.10.3_linux_amd64.zip"
-      # }
+      artifact {
+        source = "https://releases.hashicorp.com/consul/1.10.3/consul_1.10.3_linux_amd64.zip"
+      }
     }
   }
 
@@ -25,7 +22,17 @@ job "onboarding" {
 
     network {
       port "grpc" {}
+      mode="bridge"
     }
+
+      service {
+        name = "number"
+        port = "grpc"
+
+        connect {
+          sidecar_service {}
+        }
+      }
 
     task "number" {
       driver = "docker"
@@ -37,13 +44,8 @@ job "onboarding" {
       config {
         image = "number:1.0"
         ports = ["grpc"]
-        dns_servers = ["10.254.67.12"]
       }
 
-      service {
-        name = "number"
-        port = "grpc"
-      }
     }
   }
 
@@ -51,16 +53,40 @@ job "onboarding" {
     count = 1
 
     network {
+      mode="bridge"
       port "grpc" {}
       port "http" {
         static = 8080
       }
+      # dns {
+      #   servers = ["127.0.0.1"]
+      # }
     }
 
+      service {
+        name = "api"
+        port = "http"
+        tags = ["http"]
+
+        connect {
+            sidecar_service {
+                proxy {
+                    upstreams {
+                        destination_name = "number"
+                        local_bind_port = 50000
+                    }
+                }
+            }
+        }
+      }
     task "api" {
       driver = "docker"
 
       env {
+        # NUMBER_GRPC_ADDR = "number.service.consul"
+        NUMBER_GRPC_ADDR = "${NOMAD_UPSTREAM_ADDR_number}"
+        # NUMBER_GRPC_PORT = "${NOMAD_PORT_number_grpc}"
+        GUESSER_GRPC_PORT = "${NOMAD_PORT_guesser_grpc}"
         API_GRPC_PORT = "${NOMAD_PORT_grpc}"
         API_HTTP_PORT = "${NOMAD_PORT_http}"
       }
@@ -68,19 +94,11 @@ job "onboarding" {
       config {
         image = "api:1.0"
         ports = ["http", "grpc"]
-        dns_servers = ["10.254.67.12"]
-        # dns_servers = ["10.254.67.12", "8.8.8.8"] debug with internet access
+        # dns_servers = ["${NOMAD_IP_consul}"]
       }
 
       service {
         name = "api"
-        port = "http"
-        tags = ["http"]
-      }
-      service {
-        # dig grpc.api.service.consul works but cannot get DNS with tag from golang (
-        # name = "api"
-        name = "grpcapi"
         port = "grpc"
         tags = ["grpc"]
       }
@@ -99,12 +117,12 @@ job "onboarding" {
 
       env {
         GUESSER_GRPC_PORT = "${NOMAD_PORT_grpc}"
+        API_GRPC_PORT = "${NOMAD_PORT_api_grpc}"
       }
 
       config {
         image = "guesser:1.0"
         ports = ["grpc"]
-        dns_servers = ["10.254.67.12"]
       }
 
       service {
@@ -124,10 +142,13 @@ job "onboarding" {
     task "tasks" {
       driver = "docker"
 
+      env {
+        NUMBER_PORT = "${NOMAD_PORT_grpc}"
+      }
+
       config {
         image = "tasks:1.0"
         ports = ["grpc"]
-        dns_servers = ["10.254.67.12"]
       }
 
       service {
@@ -141,9 +162,7 @@ job "onboarding" {
     count = 1
 
     network {
-        port "redis" {
-            to = 6379
-        }
+      port "redis" {}
     }
 
     task "redis" {
@@ -156,7 +175,6 @@ job "onboarding" {
       config {
         image = "redis:6.2"
         ports = ["redis"]
-        dns_servers = ["10.254.67.12"]
       }
 
       service {
@@ -170,18 +188,19 @@ job "onboarding" {
     count = 1
 
     network {
-        port "mongo" {
-            to = 27017
-        }
+      port "mongo" {}
     }
 
     task "mongo" {
       driver = "docker"
 
+      env {
+        MONGO_PORT = "${NOMAD_PORT_mongo}"
+      }
+
       config {
         image = "mongo:5.0.3"
         ports = ["mongo"]
-        dns_servers = ["10.254.67.12"]
       }
 
       service {

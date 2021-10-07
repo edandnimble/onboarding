@@ -8,6 +8,7 @@ import (
 
 	apirpc "onboarding.com/api/grpcmodules"
 	numrpc "onboarding.com/number/grpcmodules"
+	"onboarding.com/utils"
 
 	"google.golang.org/grpc"
 )
@@ -18,13 +19,17 @@ type rpcServer struct {
 }
 
 func NewRpcServer() {
-	numPort := os.Getenv("NUMBER_GRPC_PORT")
-	conn, err := grpc.Dial(":"+numPort, grpc.WithInsecure())
+	ip, port, err := utils.GetServiceDNS("number")
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-	defer conn.Close()
+	fmt.Println("connecting to number: " + ip + ":" + port)
+	conn, err := grpc.Dial(ip+":"+port, grpc.WithInsecure())
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 
 	client := numrpc.NewNumberRpcClient(conn)
 	apiRpcServer := rpcServer{client: client}

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -41,10 +42,10 @@ func (c *MongoPrimeClient) Query() ([]*MongoPrime, error) {
 
 	var res []*MongoPrime
 	err = cursor.All(ctx, &res)
-	// for cursor.Next() {
-	// 	var
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
 
-	// }
-
-	return res, err
+	return res, nil
 }

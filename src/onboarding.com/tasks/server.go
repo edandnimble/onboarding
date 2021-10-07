@@ -8,6 +8,7 @@ import (
 	"github.com/RichardKnop/machinery/v1"
 	"github.com/RichardKnop/machinery/v1/config"
 	"github.com/RichardKnop/machinery/v1/tasks"
+	"onboarding.com/utils"
 )
 
 var server *machinery.Server
@@ -50,9 +51,10 @@ func launchWorker(server *machinery.Server) error {
 }
 
 func getMachineryServer() (*machinery.Server, error) {
+	ip, port, err := utils.GetServiceDNS("redis")
 	taskserver, err := machinery.NewServer(&config.Config{
-		Broker:        "redis://:6379",
-		ResultBackend: "redis://:6379",
+		Broker:        "redis://" + ip + ":" + port,
+		ResultBackend: "redis://" + ip + ":" + port,
 	})
 	if err != nil {
 		return nil, err

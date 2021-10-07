@@ -25,14 +25,15 @@ type rpcServer struct {
 func guesserRoutine(begin, incrementBy, sleepInterval, id uint32, conn *grpc.ClientConn, done <-chan bool) {
 	var i uint32 = 0
 	client := apirpc.NewApiRpcClient(conn)
-	//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	//defer cancel()
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	stream, err := client.GuessNumber(ctx)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
+
 	for {
 		select {
 		case <-done:
@@ -115,25 +116,27 @@ func (s *rpcServer) Query(ctx context.Context, req *rpc.GuesserId) (*rpc.QueryRe
 		Guesses:       guesses}, nil
 }
 
-// func (s *guessServer) IsExists(id uint32) (bool) {
-// 	_, ok := s.idToChan[id]
-// 	return ok
-// }
-
 func NewRpcServer() {
 	// api client
-	grpcPort := os.Getenv("API_GRPC_PORT")
-	conn, err := grpc.Dial(":"+grpcPort, grpc.WithInsecure())
+	ip, port, err := utils.GetServiceDNS("grpcapi")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Println("connecting to grpc api: " + ip + ":" + port)
+
+	conn, err := grpc.Dial(ip+":"+port, grpc.WithInsecure())
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 	defer conn.Close()
 
+	// guess grpc server
 	idToChan := make(map[uint32](chan bool))
 	guessRpcServer := rpcServer{conn: conn, idToChan: idToChan}
 
-	grpcPort = os.Getenv("GUESSER_GRPC_PORT")
+	grpcPort := os.Getenv("GUESSER_GRPC_PORT")
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
 		fmt.Println(err.Error())

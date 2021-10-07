@@ -42,7 +42,6 @@ func (c *mongoGuessClient) Add(guesser *MongoGuesser) error {
 func (c *mongoGuessClient) Remove(id uint32) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	//opts := (&options.UpdateOptions{}).SetUpsert(true)
 	data, err := c.Query(id)
 	if err != nil {
 		return err
@@ -53,15 +52,9 @@ func (c *mongoGuessClient) Remove(id uint32) error {
 	}
 
 	data.IsActive = false
-	// _, err := c.collection.UpdateOne(
-	// 	ctx,
-	// 	bson.D{primitive.E{Key: "id", Value: id}},
-	// 	bson.D{primitive.E{Key: "$set", Value: data}},
-	// 	opts)
 	filter := bson.D{primitive.E{Key: "id", Value: id}}
 	_, err = c.collection.ReplaceOne(ctx, filter, data, options.Replace().SetUpsert(true))
-	// 	bson.D{primitive.E{Key: "$set", Value: data}},
-	// 	opts)
+
 	return err
 }
 

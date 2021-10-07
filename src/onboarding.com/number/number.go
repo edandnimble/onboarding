@@ -23,8 +23,6 @@ func (s *rpcServer) Add(ctx context.Context, req *rpc.Number) (*rpc.ResponseStat
 	mongoClient := utils.GetNumberClient()
 	err := mongoClient.Add(req.GetNum())
 
-	//redisClient := utils.GetRedisClient()
-	//err := redisClient.AddNumber(req.GetNum())
 	if err != nil {
 		return &rpc.ResponseStatus{Ok: false, ErrCode: 1}, err
 	}

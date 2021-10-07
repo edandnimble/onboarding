@@ -71,7 +71,6 @@ func (c *mongoNumberClient) Add(num uint32) error {
 func (c *mongoNumberClient) Remove(num uint32) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	// opts := (&options.UpdateOptions{}).SetUpsert(true)
 	data, err := c.Query(num)
 	if err != nil {
 		return err
@@ -85,11 +84,7 @@ func (c *mongoNumberClient) Remove(num uint32) error {
 
 	filter := bson.D{primitive.E{Key: "num", Value: num}}
 	_, err = c.collection.ReplaceOne(ctx, filter, data, options.Replace().SetUpsert(true))
-	// _, err := c.collection.UpdateOne(
-	// 	ctx,
-	// 	bson.D{primitive.E{Key: "num", Value: num}},
-	// 	bson.D{primitive.E{Key: "$set", Value: data}},
-	// 	opts)
+
 	return err
 }
 

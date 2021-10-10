@@ -17,7 +17,9 @@ type mongoNumberClient struct {
 	collection *mongo.Collection
 }
 
-func GetNumberClient() *mongoNumberClient {
+var client *mongoNumberClient
+
+func init() {
 	client, db := GetMongoClientAndDb()
 	collection := db.Collection("number")
 	_, err := collection.Indexes().CreateOne(
@@ -30,10 +32,14 @@ func GetNumberClient() *mongoNumberClient {
 		fmt.Println("Error creating index ", err.Error())
 		return nil
 	}
-	return &mongoNumberClient{
+	client = &mongoNumberClient{
 		client:     client,
 		db:         db,
 		collection: collection}
+}
+
+func GetNumberClient() *mongoNumberClient {
+	return client
 }
 
 func (c *mongoNumberClient) Add(num uint32) error {

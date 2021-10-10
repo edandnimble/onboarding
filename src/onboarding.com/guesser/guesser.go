@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"time"
 
@@ -18,12 +19,12 @@ import (
 type rpcServer struct {
 	rpc.UnimplementedGuesserRpcServer
 	conn     *grpc.ClientConn
-	idToChan map[uint32](chan bool)
+	idToChan map[uint32]chan bool
 	id       uint32
 }
 
 func guesserRoutine(begin, incrementBy, sleepInterval, id uint32, conn *grpc.ClientConn, done <-chan bool) {
-	var i uint32 = 0
+	var i uint32
 	client := apirpc.NewApiRpcClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -78,11 +79,13 @@ func (s *rpcServer) Remove(ctx context.Context, req *rpc.GuesserId) (*rpc.Respon
 	mongoClient := utils.GetGuessClient()
 	err := mongoClient.Remove(req.GetId())
 	if err != nil {
-		return &rpc.ResponseStatus{Ok: false, ErrCode: 500}, nil
+
+		return &rpc.ResponseStatus{Ok: false, ErrCode: http.StatusInternalServerError}, nil
 	}
 	done, ok := s.idToChan[req.GetId()]
 	if !ok {
-		return &rpc.ResponseStatus{Ok: false, ErrCode: 404}, nil
+
+		return &rpc.ResponseStatus{Ok: false, ErrCode: http.StatusNotFound}, nil
 	}
 	done <- true
 	close(done)
@@ -133,8 +136,7 @@ func NewRpcServer() {
 	defer conn.Close()
 
 	// guess grpc server
-	idToChan := make(map[uint32](chan bool))
-	guessRpcServer := rpcServer{conn: conn, idToChan: idToChan}
+	idToChan := make(map[uint32]chan bool)
 
 	grpcPort := os.Getenv("GUESSER_GRPC_PORT")
 	lis, err := net.Listen("tcp", ":"+grpcPort)
@@ -144,6 +146,6 @@ func NewRpcServer() {
 	}
 
 	s := grpc.NewServer()
-	rpc.RegisterGuesserRpcServer(s, &guessRpcServer)
+	rpc.RegisterGuesserRpcServer(s, &rpcServer{conn: conn, idToChan: idToChan})
 	s.Serve(lis)
 }

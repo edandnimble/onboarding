@@ -6,7 +6,12 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"time"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 func GetServiceDNS(serviceName string) (ip string, port string, err error) {
 	//_, srvs, err := net.LookupSRV(serviceName, "tcp", "consul")

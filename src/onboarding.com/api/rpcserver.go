@@ -43,7 +43,10 @@ func NewRpcServer() {
 
 	s := grpc.NewServer()
 	apirpc.RegisterApiRpcServer(s, &apiRpcServer)
-	s.Serve(lis)
+	err = s.Serve(lis)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 }
 
 func (s *rpcServer) GuessNumber(guessStream apirpc.ApiRpc_GuessNumberServer) error {
@@ -61,7 +64,9 @@ func (s *rpcServer) GuessNumber(guessStream apirpc.ApiRpc_GuessNumberServer) err
 			return err
 		}
 
-		numStream.Send(&numrpc.GuessNumber{Num: guess.GetNum(), Id: guess.GetId()})
-		numStream.Recv()
+		go func() {
+			numStream.Send(&numrpc.GuessNumber{Num: guess.GetNum(), Id: guess.GetId()})
+			numStream.Recv()
+		}()
 	}
 }

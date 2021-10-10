@@ -10,11 +10,11 @@ import (
 	"google.golang.org/grpc"
 )
 
-type guessService struct {
+type GuessService struct {
 	client rpc.GuesserRpcClient
 }
 
-func NewGuessService() (*guessService, error) {
+func NewGuessService() (*GuessService, error) {
 	ip, port, err := utils.GetServiceDNS("guesser")
 	if err != nil {
 		fmt.Println(err.Error())
@@ -28,10 +28,10 @@ func NewGuessService() (*guessService, error) {
 	}
 
 	rpcClient := rpc.NewGuesserRpcClient(conn)
-	return &guessService{client: rpcClient}, nil
+	return &GuessService{client: rpcClient}, nil
 }
 
-func (s *guessService) Add(beginAt, incrementBy, sleepInterval uint32) error {
+func (s *GuessService) Add(beginAt, incrementBy, sleepInterval uint32) error {
 	gusserMessage := rpc.Guesser{
 		BeginAt:       beginAt,
 		IncrementBy:   incrementBy,
@@ -44,7 +44,7 @@ func (s *guessService) Add(beginAt, incrementBy, sleepInterval uint32) error {
 	return nil
 }
 
-func (s *guessService) Remove(id uint32) error {
+func (s *GuessService) Remove(id uint32) error {
 	guesserIdMessage := rpc.GuesserId{Id: id}
 	_, err := s.client.Remove(context.Background(), &guesserIdMessage)
 	if err != nil {
@@ -54,7 +54,7 @@ func (s *guessService) Remove(id uint32) error {
 	return nil
 }
 
-func (s *guessService) Query(id uint32) (*rpc.QueryResponse, error) {
+func (s *GuessService) Query(id uint32) (*rpc.QueryResponse, error) {
 	guesserIdMessage := rpc.GuesserId{Id: id}
 	res, err := s.client.Query(context.Background(), &guesserIdMessage)
 	if err != nil {
